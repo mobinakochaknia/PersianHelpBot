@@ -4,6 +4,7 @@ import pandas as pd
 import numpy as np
 import faiss
 from sentence_transformers import SentenceTransformer
+from utils_normalize import normalize_fa 
 
 # تنظیمات مسیرها
 EMBEDDINGS_DIR = "embeddings_data"
@@ -45,10 +46,14 @@ def build_and_save_embeddings(knowledge_base):
     # (اختیاری ولی بی‌ضرر) دوباره نرمال‌سازی با FAISS برای اطمینان
     faiss.normalize_L2(question_embeddings)
 
-    # ذخیره امبدینگ‌ها + متادیتا
     np.save(EMBEDDINGS_FILE, question_embeddings)
+
     # بهتره DataFrame ذخیره کنی تا iloc راحت‌تر باشه
     metadata_df = pd.DataFrame(metadata_rows)
+
+    # ⬅️ ستون نرمال‌شده برای بهبود فازی/BM25
+    metadata_df["question_norm"] = metadata_df["question"].astype(str).apply(normalize_fa)
+
     pd.to_pickle(metadata_df, METADATA_FILE)
 
     # ساخت ایندکس IP (cosine وقتی بردارها unit-norm هستند)
