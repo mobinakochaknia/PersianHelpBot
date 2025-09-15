@@ -3,6 +3,8 @@ import requests
 API_KEY = "AIzaSyCwUtLf_x03nw-lTfhoXjIBMGXHzHnC0Mg"
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent"
 
+SESSION = requests.Session()  # ⬅️ اتصال پایدار برای کاهش سربار
+
 
 def generate_payload(user_question, context_qa_list):
     if not context_qa_list:
@@ -53,23 +55,25 @@ def generate_payload(user_question, context_qa_list):
     }
 
 
+
 def call_gemini(user_question, context_qa_list):
-    headers = {
-        "Content-Type": "application/json",
-        "X-goog-api-key": API_KEY
-    }
-
+    headers = {"Content-Type": "application/json", "X-goog-api-key": API_KEY}
     payload = generate_payload(user_question, context_qa_list)
-    response = requests.post(GEMINI_URL, headers=headers, json=payload)
 
-    if response.status_code == 200:
+    try:
+        resp = SESSION.post(GEMINI_URL, headers=headers, json=payload, timeout=30)  # ⬅️ timeout
+    except requests.RequestException as e:
+        return f"❌ خطا در اتصال به سرویس: {e}"
+
+    if resp.status_code == 200:
         try:
-            data = response.json()
+            data = resp.json()
             return data["candidates"][0]["content"]["parts"][0]["text"]
-        except (KeyError, IndexError):
+        except (KeyError, IndexError, ValueError):
             return "⚠️ ساختار پاسخ غیرمنتظره بود."
     else:
-        return f"❌ خطای API: {response.status_code}\n{response.text}"
+        return f"❌ خطای API: {resp.status_code}\n{resp.text}"
+
 
 
 
